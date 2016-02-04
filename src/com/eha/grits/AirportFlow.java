@@ -8,10 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.commons.math3.random.RandomDataGenerator;
-
 import com.eha.grits.db.FlightLeg;
-import com.eha.grits.db.FlightLegDAO;
 import com.eha.grits.db.FlightLegDAOJDBCImpl;
 import com.eha.grits.flow.FlightLegInstance;
 import com.eha.grits.flow.Passenger;
@@ -20,79 +17,93 @@ import com.eha.grits.util.DistributedRandomNumberGenerator;
 
 public class AirportFlow {
 
- 
-
 	 /** 
 	 * Main Entry Point
 	 * @param args
 	 */
 	public static void main(String[] args) {
 		
-		RandomDataGenerator randomData = new RandomDataGenerator(); 
-		 
 		//These will be configurable dates
 		LocalDate 	startDate 		= LocalDate.now().minus(17, ChronoUnit.DAYS);		
 		LocalDate 	endDate 		= LocalDate.now().plus(1, ChronoUnit.DAYS);
 		Integer		totalSeatsMin	= 0;
 		Integer 	maxLegs			= 10;
+		String 		startingAirport	= "JFK";
 		
-		FlightLegDAO legDAO = new FlightLegDAOJDBCImpl();
-		
-		//Search legs by departure airport, and greater than or equal number of seats, and effective date range OVERLAPS with search criteria.
-		List<FlightLeg> scheduledLegs = legDAO.searchLegsByDeparture(startDate, endDate, totalSeatsMin, "JFK");		
-		
-		//Convert scheduled legs into actual leg instances inside the start/end time window
-		List<FlightLegInstance> legInstances = getLegsWithinTimePeriod(startDate, endDate, scheduledLegs);
-
 		//Create random number of leg picker based on current distribution
 		DistributedRandomNumberGenerator numberLegsPicker = setupDistributedNumberGenerator( maxLegs );
-		
-		//Create new Passenger and simulate a trip!
-		//TODO Repeat me MANY MANY times.
-		Passenger p = new Passenger();
-		p = simulateTrip( p, numberLegsPicker.getDistributedRandomNumber(), legInstances, Duration.ofHours(8) );
-		
-				
-		/**
-		 * Simulate passenger, make recursive method on this class
-		 * take an origin for the passenger
-		 * number of legs traveled so far, appened them to list of legs traveled
-		 * 
-		 * get the searchLegsByDeparture airport logic in that recursive function
-		 * 
-		 * probability mass function
-		 * returning the value of the probabilty mass function for teh time of each flight
-		 * returns value of 1 or some fraction of total flights
-		 */	
+				    
+		for(int i=0; i< 1000; i++) {
+			Passenger p = new Passenger();
+			p = simulateTrip( p, numberLegsPicker.getDistributedRandomNumber(), Duration.ofHours(8), startDate, endDate, totalSeatsMin, startingAirport );
+		}
+
 	}
 
-	private static Passenger simulateTrip(Passenger p, int numberLegs, List<FlightLegInstance> legInstances, Duration maxLayOverTime) {
+	private static Passenger simulateTrip(Passenger p, int numberLegs, Duration maxLayOverTime, LocalDate startDate, LocalDate endDate, Integer totalSeatsMin, String startingAirport) {
 		
 		if( p.getLegs().size() == 0 ){
 			//Just starting trip, all FlightLegInstances are on the table
-			p.addLeg( pickStartingLeg( legInstances ) );
+			p.addLeg( pickStartingLeg( startDate, endDate, totalSeatsMin, startingAirport  ) );
+			
+			FlightLegInstance leg = p.getLegs().get(0);			
+			System.out.println("TripStart: " + leg.getDepartureAirportCode() + "->" + leg.getArrivalAirportCode() + " on " + leg.getInstanceDate() + " at " + leg.getDepartureTimeUTC() );
+			if(p.getLegs().size() < numberLegs) {
+				p = simulateTrip(p, numberLegs, maxLayOverTime, startDate, endDate, totalSeatsMin, startingAirport );
+			}
 		} else{			
 			//Check out last leg, pick from available legs
 			FlightLegInstance lastLeg = p.getLegs().get( p.getLegs().size() - 1);
+			//int size = p.getLegs().size();
 			
-			LocalTime 	arrival 		= lastLeg.getArrivalTimeUTC();
-			String 		arrivalAirport	= lastLeg.getArrivalAirportCode();
+			if(lastLeg == null){
+				System.out.println("Why is this null");
+			}
+			LocalDate	arrivalDate			= lastLeg.getInstanceDate();
+			LocalTime 	arrivalTime 		= lastLeg.getArrivalTimeUTC();
+			String 		arrivalAirport		= lastLeg.getArrivalAirportCode();
 			
-			//TODO Get leg instances from next airport and pick next flight leg
-			//FEB 3 11:30 PM RIGHT HERE
-			//List<FlightLeg> scheduledLegs = legDAO.searchLegsByDeparture(startDate, endDate, totalSeatsMin, "JFK");		
-		}
-		
-		if(p.getLegs().size() < numberLegs)
-			p = simulateTrip(p, numberLegs, legInstances, maxLayOverTime);
-
+			FlightLegInstance leg = getNextLeg( maxLayOverTime, totalSeatsMin, arrivalDate, arrivalTime, arrivalAirport );
+			if(leg != null) {
+				p.addLeg(leg);
+				System.out.println("AddedLeg: " + leg.getDepartureAirportCode() + "->" + leg.getArrivalAirportCode() + " on " + leg.getInstanceDate() + " at " + leg.getDepartureTimeUTC() );
+				if(p.getLegs().size() < numberLegs) {
+					p = simulateTrip(p, numberLegs, maxLayOverTime, startDate, endDate, totalSeatsMin, startingAirport );
+				}
+			}
+		}	
 		return p;
 	}
 	
-	private static FlightLegInstance getNextLeg(List<FlightLegInstance> legInstances, FlightLegInstance curLeg, Duration maxLayOverTime  ) {
-		FlightLegInstance nextLeg = null;
+	private static FlightLegInstance getNextLeg( Duration maxLayoverTime, Integer totalSeatsMin, LocalDate arrivalDate, LocalTime arrivalTime, String airport  ) {
 		
-		return nextLeg;
+		FlightLegDAOJDBCImpl legDAO 	= new FlightLegDAOJDBCImpl();
+		
+		LocalDate arrivalPlusOne  = arrivalDate.plus(1, ChronoUnit.DAYS);
+		List<FlightLeg> scheduledLegs 	= legDAO.searchLegsByDeparture(arrivalDate, arrivalPlusOne, totalSeatsMin, airport);		
+		List<FlightLeg> legsWithinWindow = getLegsWithinLayoverTime(scheduledLegs, arrivalTime, maxLayoverTime);
+		
+		/**
+		 * Right now use Uniform Distribution and pick a leg within this window of time
+		 * TODO - use better distribution that takes into account timing of layovers
+		 */
+		//
+		//Weight the distribution based on the capacity of the plane   
+		//
+		//assign probabilty based on capacity of the plane 
+		//
+		Random randomizer = new Random();
+		if(legsWithinWindow.size() == 0) {
+			System.out.println("This passenger is lost!");
+			return null;
+		} else {
+			FlightLeg leg = legsWithinWindow.get( randomizer.nextInt( legsWithinWindow.size() ) );
+			LocalDate departureDate = arrivalDate;
+			if(leg.getDepartureTimeUTC().isBefore( arrivalTime ))		
+				departureDate = departureDate.plus(1, ChronoUnit.DAYS);
+		
+			return new FlightLegInstance(leg, departureDate);
+		}
 	}
 	
 	/**
@@ -101,17 +112,23 @@ public class AirportFlow {
 	 * @param legInstances
 	 * @return
 	 */
-	private static FlightLegInstance pickStartingLeg(List<FlightLegInstance> legInstances) {
+	private static FlightLegInstance pickStartingLeg(LocalDate startDate, LocalDate endDate, Integer totalSeatsMin, String airportCode ) {
 		
+		FlightLegDAOJDBCImpl legDAO 	= new FlightLegDAOJDBCImpl();
+		List<FlightLeg> scheduledLegs 	= legDAO.searchLegsByDeparture(startDate, endDate, totalSeatsMin, airportCode);		
+		
+		//Convert scheduled legs into actual leg instances inside the start/end time window
+		List<FlightLegInstance> legInstances = getLegsWithinTimePeriod(startDate, endDate, scheduledLegs);
+
 		//Probably should initialize the random generator outside of this block
 		return legInstances.get(new Random().nextInt(legInstances.size()));
 	}
 	
-	private static List<FlightLegInstance> getLegsWithinLayoverTime(List<FlightLegInstance> allLegs, FlightLegInstance curLeg, Duration maxLayOverTime) {
+	private static List<FlightLeg> getLegsWithinLayoverTime(List<FlightLeg> legs, LocalTime arrivalTime, Duration maxLayOverTime) {
 		
-		List<FlightLegInstance> result = new ArrayList<FlightLegInstance>();		
-		for(FlightLegInstance leg : allLegs){
-			if( TimeUtil.getInstance().isLayoverCompatible(curLeg.getArrivalTimeUTC(), leg.getDepartureTimeUTC(), maxLayOverTime.toMinutes()) ) {
+		List<FlightLeg> result = new ArrayList<FlightLeg>();		
+		for(FlightLeg leg : legs){
+			if( TimeUtil.getInstance().isLayoverCompatible(arrivalTime, leg.getDepartureTimeUTC(), maxLayOverTime.toMinutes()) ) {
 				result.add(leg);
 			}
 		}	
