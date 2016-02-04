@@ -2,23 +2,24 @@ package com.eha.grits.test;
 
 import java.time.Duration;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
+
+import com.eha.grits.tools.TimeUtil;
 
 public class TestTimeFunctions {
 
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
 
-		LocalTime 	testArrival 			= LocalTime.of(21, 59);
-		Duration	pastMidnightDuration 	= Duration.ofHours(2);
+		LocalTime depart	= LocalTime.of(4, 30);
+		int maxLayoverMinutes = 8 * 60;
 		
-		if(testArrival.plus(pastMidnightDuration).isBefore( testArrival ) ) {
-			//we triped over the midnight boundary
-			System.out.println("Tripped past midnight ");
-		} else {
-			System.out.println("Didn't trip past midnight");
-		}
+		System.out.println("Test 8 hour layover past midnight");		
+		for(int i=0; i<24; i++){
+			LocalTime arriv = LocalTime.of(i, 0);
 			
-		
+			boolean bOK = TimeUtil.getInstance().isLayoverCompatible(arriv, depart, maxLayoverMinutes );			
+			System.out.println("Arrive: " + arriv.toString() + " Depart: " + depart.toString() + " " + bOK);
+		}	
 	}
-
+	
 }

@@ -31,7 +31,6 @@ public class TestGetFlightLegs {
 		//testGetLegsFromFlightRecord();
 	}
 	
-	
 	/**
 	 * Test searching records by 
 	 */
