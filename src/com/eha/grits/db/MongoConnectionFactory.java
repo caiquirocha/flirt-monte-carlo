@@ -4,21 +4,16 @@ import com.mongodb.MongoClient;
 
 public class MongoConnectionFactory {
 
-	   private static MongoConnectionFactory instance = null;
+	   private static MongoConnectionFactory instance = null;	   
+	   private static MongoClient 	_mongoClient 	= null;  
 	   
-	   
-	   private static MongoClient 	_mongoClient 	= null;   
-	   private static final String 	_host 			= "localhost";
-	   private static final int 	_port 			= 27017;
-	
-		
 	   protected MongoConnectionFactory() { }
 	   
-	   public static MongoConnectionFactory getInstance() {
+	   public static MongoConnectionFactory getInstance(String host, int port) {
 	      if(instance == null) {
 	         instance = new MongoConnectionFactory();
 	         
-	         _mongoClient = new MongoClient( _host , _port );
+	         _mongoClient = new MongoClient( host , port );
 	      }
 	      return instance;
 	   }

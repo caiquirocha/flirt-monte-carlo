@@ -1,9 +1,15 @@
 package com.eha.grits.tools;
 
-import java.time.LocalTime;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.bson.Document;
 
 import com.eha.grits.db.FlightLeg;
@@ -24,23 +30,42 @@ public class ConvertFlightsToLegs {
 
 	public static void main(String[] args) {
 		
+		String 	mongoHost 	= "localhost";
+		int 	mongoPort	= 27017;
+		String  mongoDb		= "grits";
+		String  flightsCol	= "flights";
+		 
+		for(String arg : args){
+			if(arg.startsWith("--mongohost") ) {
+				mongoHost = arg.substring( arg.indexOf("=") + 1 );
+			}
+			if(arg.startsWith("--mongoport") ) {
+				mongoPort = Integer.parseInt(arg.substring( arg.indexOf("=") + 1));
+			}
+			if(arg.startsWith("--flightscol") ) {
+				flightsCol = arg.substring( arg.indexOf("=") + 1 );
+			}
+		}
+	 
 		Date d = new Date();
-		updateMongoDB();
+		updateMongoDB(mongoHost, mongoPort, mongoDb, flightsCol );
 		System.out.println("Elapsed time: " + (new Date().getTime() - d.getTime()) + " ms");
 
 	}
-	public static void updateMongoDB() {
+	
+	public static void updateMongoDB(String mongoHost, int mongoPort, String mongoDb, String flightsCol) {
 		
-		MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
-		MongoDatabase db = mongoClient.getDatabase("grits");
-		FindIterable<Document> iterable = db.getCollection("flights").find();
+		MongoClient mongoClient = new MongoClient( mongoHost , mongoPort );
+		MongoDatabase db = mongoClient.getDatabase( mongoDb );
+		FindIterable<Document> iterable = db.getCollection( flightsCol ).find();
+		
 		System.out.println("Start");
 		iterable.forEach(new Block<Document>() {
 			public void apply(final Document document) {		
 		    	List<FlightLeg> legs = FlightToLegs.getInstance().getLegsFromFlightRecord(document);
-		    	for(FlightLeg leg : legs) {
+		    	for(FlightLeg leg : legs) {	
 		    		FlightLegDAO legDAO = new FlightLegDAOMongoImpl();
-					legDAO.create(leg);
+		    		legDAO.create(leg);
 		    	}				 
 		    }
 		});

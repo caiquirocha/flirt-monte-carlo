@@ -16,6 +16,9 @@ public interface FlightLegDAO {
 	public int 	create( FlightLeg leg );
 	public void delete( long id );
 	public void update( long id, FlightLeg leg );
+
+	public void setHost(String host);
+	public void setPort(int port);
 	
 	public List<FlightLeg> searchLegsByDeparture( LocalDate effectiveDate, LocalDate discontinuedDate, int totalSeats, String airportDepartureCode );
 	

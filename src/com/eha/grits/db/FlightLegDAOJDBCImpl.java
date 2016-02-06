@@ -157,6 +157,18 @@ public class FlightLegDAOJDBCImpl implements FlightLegDAO{
 		// TODO Auto-generated method stub
 		
 	}
+
+	@Override
+	public void setHost(String host) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setPort(int port) {
+		// TODO Auto-generated method stub
+		
+	}
  
 
 
