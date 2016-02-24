@@ -73,6 +73,8 @@ public class FlightLegDAOMongoImpl implements FlightLegDAO {
 			doc.append("weeklyFrequency", leg.getWeeklyFrequency() );
 			doc.append("totalSeats", leg.getTotalSeats() );
 			
+			String hash = leg.getDepartureAirportCode() + leg.getArrivalAirportCode() + leg.getEffectiveDate() + leg.getDiscontinuedDate();
+				
 			FindIterable<Document> iterable = db.getCollection( collection ).find(
 					Filters.and(
 						Filters.eq("flightID",  leg.getFlightID() ),		

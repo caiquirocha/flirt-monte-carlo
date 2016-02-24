@@ -1,4 +1,4 @@
-package com.eha.grits.tools;
+package com.eha.grits;
 
 import java.util.Date;
 import java.util.List;
@@ -16,6 +16,8 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoDatabase;
 
 /**
+ * Main entry point
+ * 
  * Consume mongo flights collection, parse out legs, figure out arrival and departure times, write legs to legs mongoDB
  * @author brocka
  */
@@ -27,7 +29,8 @@ public class ConvertFlightsToLegs {
 		int 	mongoPort	= 27017;
 		String  mongoDb		= "grits-net-meteor";
 		String  flightsCol	= "flights";
-		 
+		String  legsCollection 	= "legs";
+		
 		for(String arg : args){
 			if(arg.startsWith("--mongohost") ) {
 				mongoHost = arg.substring( arg.indexOf("=") + 1 );
@@ -45,17 +48,23 @@ public class ConvertFlightsToLegs {
 	 
 		Date d = new Date();
 		
-		updateMongoDB(mongoHost, mongoPort, mongoDb, flightsCol );
+		updateMongoDB(mongoHost, mongoPort, mongoDb, flightsCol, legsCollection );
 		
 		System.out.println("Elapsed time: " + (new Date().getTime() - d.getTime()) + " ms");
 
 	}
 	
-	public static void updateMongoDB(String mongoHost, int mongoPort, String mongoDb, String flightsCol) {
+	public static void updateMongoDB(String mongoHost, int mongoPort, String mongoDb, String flightsCol, String legsCollection) {
 		
 		MongoClient mongoClient = new MongoClient( mongoHost , mongoPort );
 		MongoDatabase db = mongoClient.getDatabase( mongoDb );
 		FindIterable<Document> iterable = db.getCollection( flightsCol ).find();
+		
+		db.getCollection( legsCollection ).createIndex( new Document("flightID", 1) );
+		db.getCollection( legsCollection ).createIndex( new Document("departureAirport._id", 1) );
+		db.getCollection( legsCollection ).createIndex( new Document("arrivalAirport._id", 1) );
+		db.getCollection( legsCollection ).createIndex( new Document("effectiveDate", 1) );
+		db.getCollection( legsCollection ).createIndex( new Document("discontinuedDate", 1) );
 		
 		iterable.forEach(new Block<Document>() {
 			public void apply(final Document document) {		

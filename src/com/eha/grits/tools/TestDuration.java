@@ -1,6 +1,5 @@
 package com.eha.grits.tools;
 
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.ArrayList;
@@ -9,8 +8,6 @@ import java.util.List;
 import org.bson.Document;
 
 import com.eha.grits.db.FlightLeg;
-import com.eha.grits.db.FlightLegDAO;
-import com.eha.grits.db.FlightLegDAOMongoImpl;
 import com.eha.grits.util.FlightToLegs;
 import com.mongodb.Block;
 import com.mongodb.MongoClient;

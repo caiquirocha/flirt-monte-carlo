@@ -26,7 +26,8 @@ public class FlightToLegs {
 	      return instance;
 	   }
 
-	   public List<FlightLeg> getLegsFromFlightRecord(Document doc) {
+	@SuppressWarnings("unchecked")
+	public List<FlightLeg> getLegsFromFlightRecord(Document doc) {
 			
 			List<FlightLeg> legs = new ArrayList<FlightLeg>();
 			
@@ -40,6 +41,7 @@ public class FlightToLegs {
 			Document 	departureAirport		= (Document) doc.get("departureAirport");
 			String 		departureAirportCode	= (String) departureAirport.get("_id");
 			Document	departureAirportLoc		= (Document)departureAirport.get("loc");
+			
 			ArrayList<Double> departureCoord 	=  (ArrayList<Double>) departureAirportLoc.get( "coordinates" );
 			Double 		departureLng 			= departureCoord.get(0);
 			Double 		departureLat 			= departureCoord.get(1);
@@ -51,6 +53,7 @@ public class FlightToLegs {
 			String	 	arrivalAirportCode		= (String) arrivalAirport.get("_id");
 			
 			Document	arrivalAirportLoc		= (Document) arrivalAirport.get("loc");
+			
 			ArrayList<Double> arrivalCoord 		=  (ArrayList<Double>) arrivalAirportLoc.get( "coordinates" );
 			Double 		arrivalLng 				= arrivalCoord.get(0);
 			Double 		arrivalLat 				= arrivalCoord.get(1);
