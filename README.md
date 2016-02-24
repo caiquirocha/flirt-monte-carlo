@@ -1,13 +1,4 @@
 # flirt-monte-carlo
-Flirt monte carlo service
+Flirt Leg Generator
 
-
-Monte Carlo Simulation with following parameters
-  Departure Node or Node Cluster
-  Max or min number of total seats on plane
-  Number passengers in simulation
-  Start date
-  End date
-  Max number of legs <Future Optional: with custom probability distribution>
-  Max layover time <Future Optional: with custom probability distribution>
-  
+Example: java -jar flirt-legs.jar --mongohost="localhost" --mongoport="27017" --mongodb="grits-net-meteor" --flightscol="flights"  
