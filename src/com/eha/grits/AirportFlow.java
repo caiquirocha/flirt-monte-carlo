@@ -18,9 +18,12 @@ import com.eha.grits.util.DistributedRandomNumberGenerator;
 public class AirportFlow {
 
 	 /** 
-	 * Main Entry Point
+	 * We are using the python simulation service AirportFlowCalculator.py instead.
+	 * 
 	 * @param args
 	 */
+	
+	@Deprecated
 	public static void main(String[] args) {
 		
 		//These will be configurable dates

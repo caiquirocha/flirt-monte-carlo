@@ -55,6 +55,7 @@ public class TestGetFlightLegs {
 		MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
 		MongoDatabase db = mongoClient.getDatabase("grits");
 		
+		
 		FindIterable<Document> iterable = db.getCollection("flights").find(
 			com.mongodb.client.model.Filters.eq("departureAirport._id", airportCode) 
 		);

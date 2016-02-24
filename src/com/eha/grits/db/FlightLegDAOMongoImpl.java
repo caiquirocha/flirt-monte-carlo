@@ -9,16 +9,19 @@ import java.util.List;
 import org.bson.Document;
 
 import com.mongodb.MongoClient;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 
 public class FlightLegDAOMongoImpl implements FlightLegDAO {
 	
 	private String 	host		= "localhost";
-	private int 	port		= 27017;
+	private int 	port		= 270178;
 	
-	private String database 	= "grits";
+	private String database 	= "grits-net-meteor";
 	private String collection 	= "legs";
+	
 	
 	@Override
 	public int create(FlightLeg leg)   {
@@ -70,10 +73,24 @@ public class FlightLegDAOMongoImpl implements FlightLegDAO {
 			doc.append("weeklyFrequency", leg.getWeeklyFrequency() );
 			doc.append("totalSeats", leg.getTotalSeats() );
 			
-			System.out.println(doc);
-			legsCollection.insertOne(doc);
+			FindIterable<Document> iterable = db.getCollection( collection ).find(
+					Filters.and(
+						Filters.eq("flightID",  leg.getFlightID() ),		
+						Filters.eq("departureAirport._id",  leg.getDepartureAirportCode() ),
+						Filters.eq("arrivalAirport._id",  leg.getArrivalAirportCode() ),
+						Filters.eq("effectiveDate",  Date.from( leg.getEffectiveDate().atStartOfDay(ZoneId.of("UTC") ).toInstant() ) ),
+						Filters.eq("discontinuedDate",  Date.from( leg.getDiscontinuedDate().atStartOfDay(ZoneId.of("UTC") ).toInstant() ) ) 
+					)
+				).limit(1);
 			
-			return 1;
+			if( iterable.first() == null) {	
+				legsCollection.insertOne(doc);
+				System.out.println("Insert: " + doc);
+				return 1;
+			}
+			else {
+				return 0;
+			}
 	}
 	
 	@Override
@@ -102,5 +119,7 @@ public class FlightLegDAOMongoImpl implements FlightLegDAO {
 	public void setPort(int port) {
 		this.port = port;		
 	}
-
+	public void setDB(String db) {
+		this.database = db;
+	}
 }

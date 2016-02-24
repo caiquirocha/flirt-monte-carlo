@@ -169,7 +169,11 @@ public class FlightLegDAOJDBCImpl implements FlightLegDAO{
 		// TODO Auto-generated method stub
 		
 	}
- 
+	@Override
+	public void setDB(String database) {
+		// TODO Auto-generated method stub
+		
+	}
 
 
 

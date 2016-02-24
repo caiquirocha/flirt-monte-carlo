@@ -17,7 +17,7 @@ import com.eha.grits.db.ConnectionFactory;
 */
 
 public class DBUtil {
- 
+	
 	 /**
 	  * Create the legs table, this table is the flights mongo collection all broken out into individual legs
 	  * 

@@ -3,13 +3,6 @@ package com.eha.grits.tools;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.bson.Document;
 
 import com.eha.grits.db.FlightLeg;
@@ -23,7 +16,7 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoDatabase;
 
 /**
- * Consume mongo flights collection, parse out legs, figure out arrival and departure times, write legs to legs database
+ * Consume mongo flights collection, parse out legs, figure out arrival and departure times, write legs to legs mongoDB
  * @author brocka
  */
 public class ConvertFlightsToLegs {
@@ -32,7 +25,7 @@ public class ConvertFlightsToLegs {
 		
 		String 	mongoHost 	= "localhost";
 		int 	mongoPort	= 27017;
-		String  mongoDb		= "grits";
+		String  mongoDb		= "grits-net-meteor";
 		String  flightsCol	= "flights";
 		 
 		for(String arg : args){
@@ -42,13 +35,18 @@ public class ConvertFlightsToLegs {
 			if(arg.startsWith("--mongoport") ) {
 				mongoPort = Integer.parseInt(arg.substring( arg.indexOf("=") + 1));
 			}
+			if(arg.startsWith("--mongodb") ) {
+				mongoDb =  arg.substring( arg.indexOf("=") + 1);
+			}
 			if(arg.startsWith("--flightscol") ) {
 				flightsCol = arg.substring( arg.indexOf("=") + 1 );
 			}
 		}
 	 
 		Date d = new Date();
+		
 		updateMongoDB(mongoHost, mongoPort, mongoDb, flightsCol );
+		
 		System.out.println("Elapsed time: " + (new Date().getTime() - d.getTime()) + " ms");
 
 	}
@@ -59,13 +57,20 @@ public class ConvertFlightsToLegs {
 		MongoDatabase db = mongoClient.getDatabase( mongoDb );
 		FindIterable<Document> iterable = db.getCollection( flightsCol ).find();
 		
-		System.out.println("Start");
 		iterable.forEach(new Block<Document>() {
 			public void apply(final Document document) {		
-		    	List<FlightLeg> legs = FlightToLegs.getInstance().getLegsFromFlightRecord(document);
-		    	for(FlightLeg leg : legs) {	
-		    		FlightLegDAO legDAO = new FlightLegDAOMongoImpl();
-		    		legDAO.create(leg);
+				try {
+			    	List<FlightLeg> legs = FlightToLegs.getInstance().getLegsFromFlightRecord(document);
+			    	for(FlightLeg leg : legs) {	
+			    		FlightLegDAO legDAO = new FlightLegDAOMongoImpl();
+			    		legDAO.setHost(mongoHost);
+			    		legDAO.setPort(mongoPort);
+			    		legDAO.setDB(mongoDb);	
+			    		legDAO.create(leg);
+			    	}
+				}
+			    catch(Exception e){
+			    	e.printStackTrace();
 		    	}				 
 		    }
 		});
@@ -73,17 +78,15 @@ public class ConvertFlightsToLegs {
 		mongoClient.close();
 	}
 	
-	public static void updateSQLDB() {
-		MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
-		MongoDatabase db = mongoClient.getDatabase("grits");
+	public static void updateSQLDB(String mongoHost, int mongoPort, String mongoDb) {
+		
+		MongoClient mongoClient = new MongoClient( mongoHost , mongoPort );
+		MongoDatabase db = mongoClient.getDatabase( mongoDb );
 		FindIterable<Document> iterable = db.getCollection("flights").find();
 		
 		iterable.forEach(new Block<Document>() {
-    
 			public void apply(final Document document) {
-				
 		    	List<FlightLeg> legs = FlightToLegs.getInstance().getLegsFromFlightRecord(document);
-		    	
 		    	for(FlightLeg leg : legs) {
 		    		FlightLegDAO legDAO = new FlightLegDAOJDBCImpl();
 					int result = legDAO.create(leg);
